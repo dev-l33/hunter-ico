@@ -12,10 +12,10 @@ contract Manager is Ownable {
     uint8 constant public DECIMALS = 18;
 
     /// allocate 50 million tokens to the artist
-    uint256 constant public ALLOCATION_ARTIST = 50000000 * 10 ** uint256(DECIMALS);
+    uint256 constant public ALLOCATION_ARTIST = 50000000 ether;
     
     /// allocate 50 million tokens to HCR
-    uint256 constant public ALLOCATION_HCR = 50000000 * 10 ** uint256(DECIMALS);
+    uint256 constant public ALLOCATION_HCR = 50000000 ether;
 
     ArtistToken[] public tokens;
 
@@ -24,6 +24,8 @@ contract Manager is Ownable {
 
     /// address of wallet for funds
     address wallet;
+
+    event TokenIssue(address indexed artist, address indexed token);
 
     function Manager(address _wallet, address _hcrAddress) public {
         require(_wallet != address(0) && _hcrAddress != address(0));
@@ -59,11 +61,22 @@ contract Manager is Ownable {
         ArtistToken memory artistToken = ArtistToken(_artistAddress, tokenAddress);
         tokens.push(artistToken);
 
+        TokenIssue(_artistAddress, tokenAddress);
+
         return tokenAddress;
     }
 
     function countTokens() view public returns (uint) {
         return tokens.length;
+    }
+
+    function getToken(address artistAddress) view public returns (address) {
+        for (uint i = 0; i < tokens.length; i++) {
+            if (tokens[i].artistAddress == artistAddress) {
+                return tokens[i].contractAddress;
+            }
+        }
+        return address(0);
     }
 
     function setRate(address _tokenAddress, uint256 _rate) public {

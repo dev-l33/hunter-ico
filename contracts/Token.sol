@@ -39,14 +39,6 @@ contract Token is BasicToken, Ownable {
 
     event Mint(address indexed to, uint256 amount);
 
-    /**
-    * event for token purchase logging
-    * @param purchaser who paid for the tokens
-    * @param value weis paid for purchase
-    * @param amount amount of tokens purchased
-    */
-    event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount);
-
     function Token (
         string _name,
         string _symbol,
@@ -66,7 +58,7 @@ contract Token is BasicToken, Ownable {
 
         name = _name;
         symbol = _symbol;
-        tokenSaleHardCap = _tokenSaleHardCap * 10 ** uint256(decimals);
+        tokenSaleHardCap = _tokenSaleHardCap * 1 ether;
         rate = _rate;
         wallet = _wallet;
 
@@ -99,7 +91,7 @@ contract Token is BasicToken, Ownable {
         amountRaised += weiAmount;
         totalSupply_ += tokens + bonus;
         forwardFunds();
-        TokenPurchase(msg.sender, weiAmount, tokens);
+        Transfer(this, msg.sender, tokens + bonus);
     }
 
     function getTokenAmount(uint256 weiAmount) internal view returns(uint256) {
@@ -165,7 +157,7 @@ contract Token is BasicToken, Ownable {
         reviewers[_reviewer] = true;
     }
 
-       /**
+    /**
     * @dev Function to remove affiliates
     * @param _affiliate The address of affiliate user
     */
