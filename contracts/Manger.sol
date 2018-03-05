@@ -16,7 +16,7 @@ contract Manager is Ownable, usingOraclize {
     uint256 public ethusd;
     
     // Price update frequency.
-    uint public updatePriceFreq = 2 minutes;
+    uint public updatePriceFreq = 6 hours;
 
     /// allocate 50 million tokens to the artist
     uint256 constant public ALLOCATION_ARTIST = 50000000 ether;

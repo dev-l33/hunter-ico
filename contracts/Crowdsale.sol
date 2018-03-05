@@ -32,13 +32,16 @@ contract Crowdsale is Ownable {
   // Amount of wei raised
   uint256 public weiRaised;
 
+  // Amount of wei raised durring current stage
+  uint256 public weiRaisedInCurrentStage;
+
   // Amount of token sold
   uint256 public tokenSold;
 
   // Stage information
-  uint stageStartDate;
-  uint stageEndDate;
-  uint8 stageNum;
+  uint public stageStartDate;
+  uint public stageEndDate;
+  uint8 public stageNum;
 
   /// List of Affiliates user address
   mapping (address => bool) public affiliates;
@@ -101,6 +104,7 @@ contract Crowdsale is Ownable {
 
     // update state
     weiRaised = weiRaised.add(weiAmount);
+    weiRaisedInCurrentStage = weiRaisedInCurrentStage.add(weiAmount);
     tokenSold += tokens;
 
     TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens);
@@ -114,6 +118,7 @@ contract Crowdsale is Ownable {
     stageEndDate = _end;
     rate = _rate;
     stageNum++;
+    weiRaisedInCurrentStage = 0;
     return stageNum;
   }
 
