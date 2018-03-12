@@ -31,12 +31,13 @@ contract Crowdsale is Ownable {
 
   // Amount of wei raised
   uint256 public weiRaised;
-
-  // Amount of wei raised durring current stage
-  uint256 public weiRaisedInCurrentStage;
-
   // Amount of token sold
   uint256 public tokenSold;
+
+  // Amount of wei raised before start current stage
+  uint256 public weiRaisedInPrevStage;
+  // Amount of token sold before start current stage
+  uint256 public tokenSoldInPrevStage;
 
   // Stage information
   uint public stageStartDate;
@@ -103,13 +104,11 @@ contract Crowdsale is Ownable {
     _processPurchase(_beneficiary, tokens);
 
     // update state
-    weiRaised = weiRaised.add(weiAmount);
-    weiRaisedInCurrentStage = weiRaisedInCurrentStage.add(weiAmount);
-    tokenSold += tokens;
-
-    TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens);
+    weiRaised += weiAmount;
 
     _forwardFunds();
+
+    TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens);
   }
 
   function stage(uint _start, uint _end, uint256 _rate) onlyOwner public returns(uint8) {
@@ -118,13 +117,14 @@ contract Crowdsale is Ownable {
     stageEndDate = _end;
     rate = _rate;
     stageNum++;
-    weiRaisedInCurrentStage = 0;
+    weiRaisedInPrevStage = weiRaised;
+    tokenSoldInPrevStage = tokenSold;
     return stageNum;
   }
 
   function allocate(address _to, uint _amount) onlyOwner public {
     tokenSold += _amount;
-    _deliverTokens(_to, _amount);
+    _processPurchase(_to, _amount);
     
     TokenAllocate(_to, _amount);
   }
@@ -180,6 +180,22 @@ contract Crowdsale is Ownable {
       return true;
   }
 
+  /**
+   * @dev Function to get wei raised in current stage
+   * @return uint wei Raised in current stage
+   */
+  function weiRaisedInCurrentStage() view public returns(uint) {
+    return weiRaised - weiRaisedInPrevStage;
+  }
+
+  /**
+   * @dev Function to get wei raised in current stage
+   * @return uint wei Raised in current stage
+   */
+  function tokenSoldInCurrentStage() view public returns(uint) {
+    return tokenSold - tokenSoldInPrevStage;
+  }
+
   // -----------------------------------------
   // Internal interface (extensible)
   // -----------------------------------------
@@ -211,6 +227,7 @@ contract Crowdsale is Ownable {
    */
   function _processPurchase(address _beneficiary, uint256 _tokenAmount) internal {
     _deliverTokens(_beneficiary, _tokenAmount);
+    tokenSold += _tokenAmount;
   }
 
   /**
