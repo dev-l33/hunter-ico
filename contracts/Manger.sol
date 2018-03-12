@@ -13,16 +13,12 @@ contract Manager is Ownable, usingOraclize {
     }
 
     // USD ETH rate 1 eth = x USD ether
-    uint256 public ethusd;
+    uint public ethusd = 73000;
     
     // Price update frequency.
     uint public updatePriceFreq = 6 hours;
-
-    /// allocate 50 million tokens to the artist
-    uint256 constant public ALLOCATION_ARTIST = 50000000 ether;
-    
-    /// allocate 50 million tokens to HCR
-    uint256 constant public ALLOCATION_HCR = 50000000 ether;
+    // on/off price update
+    bool updateEnabled = true;
 
     mapping (address => ArtistICO) public icos;
     mapping (uint => address) public artistIndex;
@@ -49,7 +45,9 @@ contract Manager is Ownable, usingOraclize {
     function createToken(
         address _artistAddress,
         string _name,
-        string _symbol
+        string _symbol,
+        uint256 _hcrAllocation,
+        uint256 _artistAllocation
     ) onlyOwner public returns(address)
     {
         require(_artistAddress != address(0));
@@ -57,8 +55,8 @@ contract Manager is Ownable, usingOraclize {
 
         Crowdsale sale = new Crowdsale(wallet, token);
 
-        token.mint(_artistAddress, ALLOCATION_ARTIST);
-        token.mint(FounderAddress, ALLOCATION_HCR);
+        token.mint(_artistAddress, _artistAllocation);
+        token.mint(FounderAddress, _hcrAllocation);
 
         icos[_artistAddress] = ArtistICO(address(sale), address(token), 0);
         artistIndex[icoCount] = _artistAddress;
@@ -100,6 +98,10 @@ contract Manager is Ownable, usingOraclize {
         updatePriceFreq = _freq;
     }
 
+    function enablePriceUpdate(bool _updateEnabled) onlyOwner public {
+        updateEnabled = _updateEnabled;
+    }
+
     function addAffiliate(address _artist, address _user) onlyOwner public {
         require(icos[_artist].crowdsale != address(0));
         Crowdsale sale = Crowdsale(icos[_artist].crowdsale);
@@ -128,7 +130,9 @@ contract Manager is Ownable, usingOraclize {
     }
 
     function updatePrice() public payable {
-        oraclize_query(updatePriceFreq, "URL", "json(https://api.etherscan.io/api?module=stats&action=ethprice&apikey=YourApiKeyToken).result.ethusd");
+        if (updateEnabled) {
+            oraclize_query(updatePriceFreq, "URL", "json(https://api.etherscan.io/api?module=stats&action=ethprice&apikey=YourApiKeyToken).result.ethusd");
+        }
     }
 
     // -----------------------------------------
