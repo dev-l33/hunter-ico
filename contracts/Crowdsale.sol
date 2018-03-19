@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import "./Token.sol";
 import "./SafeMath.sol";
-import './Ownable.sol';
+import "./Ownable.sol";
 
 /**
  * @title Crowdsale
@@ -123,7 +123,6 @@ contract Crowdsale is Ownable {
   }
 
   function allocate(address _to, uint _amount) onlyOwner public {
-    tokenSold += _amount;
     _processPurchase(_to, _amount);
     
     TokenAllocate(_to, _amount);
