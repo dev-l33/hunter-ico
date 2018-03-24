@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import "./Token.sol";
 import "./Crowdsale.sol";
@@ -13,12 +13,12 @@ contract Manager is Ownable, usingOraclize {
     }
 
     // USD ETH rate 1 eth = x USD ether
-    uint public ethusd = 73000;
+    uint public ethusd = 53761;
     
     // Price update frequency.
     uint public updatePriceFreq = 6 hours;
     // on/off price update
-    bool updateEnabled = true;
+    bool updatePriceEnabled = true;
 
     mapping (address => ArtistICO) public icos;
     mapping (uint => address) public artistIndex;
@@ -62,12 +62,12 @@ contract Manager is Ownable, usingOraclize {
         artistIndex[icoCount] = _artistAddress;
         icoCount++;
         
-        TokenIssue(_artistAddress, address(sale),  address(token));
+        emit TokenIssue(_artistAddress, address(sale),  address(token));
 
         return icos[_artistAddress].crowdsale;
     }
 
-    function setStage(address _artist, uint _start, uint _end, uint256 _amount, uint _usdPrice) onlyOwner public {
+    function setStage(address _artist, uint _openingTime, uint _closingTime, uint256 _amount, uint _usdPrice) onlyOwner public {
         require(_amount > 0 && _usdPrice > 0);
         require(icos[_artist].crowdsale != address(0));
 
@@ -75,9 +75,15 @@ contract Manager is Ownable, usingOraclize {
         Token token = Token(icos[_artist].token);
         token.mint(icos[_artist].crowdsale, _amount * 1 ether);
         uint rate = ethusd / _usdPrice;
-        sale.stage(_start, _end, rate);
+        sale.stage(_openingTime, _closingTime, rate);
 
         icos[_artist].price = _usdPrice;
+    }
+
+    function updateCrowdsaleTime(address _artist, uint _openingTime, uint _closingTime) onlyOwner public {
+        require(icos[_artist].crowdsale != address(0));
+        Crowdsale sale = Crowdsale(icos[_artist].crowdsale);
+        sale.updateTime(_openingTime, _closingTime);
     }
 
     function allocate(address _artist, address _to, uint _amount) onlyOwner public {
@@ -98,20 +104,8 @@ contract Manager is Ownable, usingOraclize {
         updatePriceFreq = _freq;
     }
 
-    function enablePriceUpdate(bool _updateEnabled) onlyOwner public {
-        updateEnabled = _updateEnabled;
-    }
-
-    function addAffiliate(address _artist, address _user) onlyOwner public {
-        require(icos[_artist].crowdsale != address(0));
-        Crowdsale sale = Crowdsale(icos[_artist].crowdsale);
-        sale.addAffiliate(_user);
-    }
-
-    function addReviewer(address _artist, address _user) onlyOwner public {
-        require(icos[_artist].crowdsale != address(0));
-        Crowdsale sale = Crowdsale(icos[_artist].crowdsale);
-        sale.addReviewer(_user);
+    function enablePriceUpdate(bool _updatePriceEnabled) onlyOwner public {
+        updatePriceEnabled = _updatePriceEnabled;
     }
 
     function getCrowdsale(address _artist) view public returns (address) {
@@ -130,7 +124,7 @@ contract Manager is Ownable, usingOraclize {
     }
 
     function updatePrice() public payable {
-        if (updateEnabled) {
+        if (updatePriceEnabled) {
             oraclize_query(updatePriceFreq, "URL", "json(https://api.etherscan.io/api?module=stats&action=ethprice&apikey=YourApiKeyToken).result.ethusd");
         }
     }

@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
-import './BasicToken.sol';
-import './Ownable.sol';
+import "./BasicToken.sol";
+import "./Ownable.sol";
 
 contract Token is BasicToken, Ownable {
 
@@ -25,8 +25,8 @@ contract Token is BasicToken, Ownable {
     function mint(address _to, uint256 _amount) onlyOwner public returns (bool) {
         totalSupply_ = totalSupply_.add(_amount);
         balances[_to] = balances[_to].add(_amount);
-        Mint(_to, _amount);
-        Transfer(address(0), _to, _amount);
+        emit Mint(_to, _amount);
+        emit Transfer(address(0), _to, _amount);
         return true;
     }
 }
