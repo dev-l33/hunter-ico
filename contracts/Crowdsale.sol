@@ -1,8 +1,11 @@
 pragma solidity ^0.4.21;
 
-import "./Token.sol";
-import "./SafeMath.sol";
 import "./Ownable.sol";
+import "./ManagerInterface.sol";
+
+interface ERC20Interface {
+    function transfer(address receiver, uint amount) external returns (bool);
+}
 
 /**
  * @title Crowdsale
@@ -18,16 +21,18 @@ import "./Ownable.sol";
  */
 
 contract Crowdsale is Ownable {
-    using SafeMath for uint256;
+
+    // Manager contract
+    ManagerInterface public manager;
 
     // The token being sold
-    Token public token;
+    ERC20Interface public token;
 
     // Address where funds are collected
     address public wallet;
 
-    // How many token units a buyer gets per wei
-    uint256 public rate;
+    // USD price per token
+    uint public price;
 
     // Amount of wei raised
     uint256 public weiRaised;
@@ -64,12 +69,14 @@ contract Crowdsale is Ownable {
      * @param _wallet Address where collected funds will be forwarded to
      * @param _token Address of the token being sold
      */
-    function Crowdsale(address _wallet, Token _token) public {
+    function Crowdsale(address _wallet, address _token) public {
         require(_wallet != address(0));
         require(_token != address(0));
 
         wallet = _wallet;
-        token = _token;
+        token = ERC20Interface(_token);
+        
+        manager = ManagerInterface(msg.sender);
     }
 
     // -----------------------------------------
@@ -105,11 +112,11 @@ contract Crowdsale is Ownable {
         emit TokenPurchase(msg.sender, _beneficiary, weiAmount, tokens);
     }
 
-    function stage(uint _openingTime, uint _closingTime, uint256 _rate) onlyOwner public returns(uint8) {
-        require(_rate > 0 && _closingTime > now);
+    function stage(uint _openingTime, uint _closingTime, uint _price) onlyOwner public returns(uint8) {
+        require(_price > 0 && _closingTime > now);
         openingTime = _openingTime;
         closingTime = _closingTime;
-        rate = _rate;
+        price = _price;
         stageNum++;
         weiRaisedInPrevStage = weiRaised;
         tokenSoldInPrevStage = tokenSold;
@@ -122,11 +129,11 @@ contract Crowdsale is Ownable {
         emit TokenAllocate(_to, _amount);
     }
 
-    /// @notice Allow users to buy tokens for `_rate` eth
-    /// @param _rate rate the users can sell to the contract
-    function setRate(uint256 _rate) onlyOwner public {
-        require(_rate > 0);
-        rate = _rate;
+    /// @notice Allow users to buy tokens for `_price` USD
+    /// @param _price price the users can sell to the contract
+    function setPrice(uint256 _price) onlyOwner public {
+        require(_price > 0);
+        price = _price;
     }
 
     function updateTime(uint _openingTime, uint _closingTime) onlyOwner public {
@@ -161,8 +168,7 @@ contract Crowdsale is Ownable {
      * @param _weiAmount Value in wei involved in the purchase
      */
     function _preValidatePurchase(address _beneficiary, uint256 _weiAmount) view internal {
-        require(_beneficiary != address(0));
-        require(_weiAmount != 0);
+        require(_weiAmount != 0 && _beneficiary != address(0));
         require(now >= openingTime && now < closingTime);
     }
 
@@ -191,7 +197,7 @@ contract Crowdsale is Ownable {
      * @return Number of tokens that can be purchased with the specified _weiAmount
      */
     function _getTokenAmount(uint256 _weiAmount) internal view returns(uint256) {
-        return _weiAmount.mul(rate);
+        return _weiAmount * manager.ethusd() / price;
     }
 
     /**
